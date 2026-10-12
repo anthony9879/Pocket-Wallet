@@ -1,0 +1,8 @@
+{
+  "name": "Pocket Wallet",
+  "description": "A user-friendly digital wallet application designed to simplify digital money management, instant peer-to-peer transfers, virtual cards, budget tracking, and bill splitting.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
