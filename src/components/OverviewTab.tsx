@@ -1,23 +1,34 @@
 import React, { useState } from 'react';
-import { Transaction, VirtualCard, SavingsVault, Contact, UserProfile } from '../types/wallet';
+import { Transaction, VirtualCard, SavingsVault, Contact, UserProfile, PerkOffer } from '../types/wallet';
 import { 
   Send, 
   Plus, 
   ArrowDownLeft, 
   ArrowUpRight, 
   QrCode, 
-  CreditCard, 
   PiggyBank, 
   TrendingUp, 
   TrendingDown, 
   ChevronRight, 
-  ShieldCheck, 
-  Sparkles,
-  Zap,
+  Sparkles, 
   ArrowRight,
   Split,
-  Search
+  Search,
+  Users,
+  Star,
+  Download,
+  CheckCircle2,
+  Filter,
+  Zap,
+  Gift,
+  Copy,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Tag
 } from 'lucide-react';
+import { VirtualCardWalletDeck } from './VirtualCardWalletDeck';
+import confetti from 'canvas-confetti';
 
 interface OverviewTabProps {
   user: UserProfile;
@@ -29,6 +40,9 @@ interface OverviewTabProps {
   cards: VirtualCard[];
   vaults: SavingsVault[];
   contacts: Contact[];
+  perks?: PerkOffer[];
+  onTogglePerk?: (perkId: string) => void;
+  onRedeemCashback?: (amount: number) => void;
   onOpenSend: () => void;
   onOpenAddMoney: () => void;
   onOpenRequest: () => void;
@@ -36,6 +50,10 @@ interface OverviewTabProps {
   onSelectTransaction: (tx: Transaction) => void;
   onQuickSendContact: (contact: Contact, amount: number) => void;
   setActiveTab: (tab: string) => void;
+  onToggleFreezeCard?: (cardId: string) => void;
+  onUpdateLimit?: (cardId: string, newLimit: number) => void;
+  onOpenNewCardModal?: () => void;
+  onToggleFavoriteContact?: (id: string) => void;
 }
 
 export const OverviewTab: React.FC<OverviewTabProps> = ({
@@ -48,6 +66,9 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   cards,
   vaults,
   contacts,
+  perks = [],
+  onTogglePerk,
+  onRedeemCashback,
   onOpenSend,
   onOpenAddMoney,
   onOpenRequest,
@@ -55,9 +76,19 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   onSelectTransaction,
   onQuickSendContact,
   setActiveTab,
+  onToggleFreezeCard,
+  onUpdateLimit,
+  onOpenNewCardModal,
+  onToggleFavoriteContact,
 }) => {
-  const [filterType, setFilterType] = useState<'all' | 'in' | 'out'>('all');
+  const [filterType, setFilterType] = useState<string>('All');
   const [txSearch, setTxSearch] = useState('');
+  const [contactSearch, setContactSearch] = useState('');
+  const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
+  const [exportNotice, setExportNotice] = useState(false);
+  const [isPerksHubOpen, setIsPerksHubOpen] = useState(false);
+  const [redeemedNotice, setRedeemedNotice] = useState(false);
+  const [copiedReferral, setCopiedReferral] = useState(false);
 
   // Primary balance
   const currentBalance = balances[activeCurrency] || 0;
@@ -70,18 +101,31 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
     .filter((t) => t.amount < 0)
     .reduce((acc, t) => acc + Math.abs(t.amount), 0);
 
+  // Category options for statement filtering
+  const categories = ['All', 'Transfers', 'Food & Dining', 'Shopping', 'Entertainment', 'Income & Salary', 'Bills & Utilities', 'Savings'];
+
   // Filtered transactions
   const filteredTransactions = transactions.filter((t) => {
-    if (filterType === 'in' && t.amount < 0) return false;
-    if (filterType === 'out' && t.amount > 0) return false;
+    if (filterType !== 'All' && t.category !== filterType) return false;
     if (txSearch) {
+      const q = txSearch.toLowerCase();
       const match =
-        t.title.toLowerCase().includes(txSearch.toLowerCase()) ||
-        t.recipientOrSender.toLowerCase().includes(txSearch.toLowerCase()) ||
-        t.category.toLowerCase().includes(txSearch.toLowerCase());
+        t.title.toLowerCase().includes(q) ||
+        t.recipientOrSender.toLowerCase().includes(q) ||
+        t.category.toLowerCase().includes(q) ||
+        t.referenceNumber.toLowerCase().includes(q) ||
+        (t.note && t.note.toLowerCase().includes(q));
       if (!match) return false;
     }
     return true;
+  });
+
+  // Filtered contacts
+  const filteredContacts = contacts.filter((c) => {
+    if (showOnlyFavorites && !c.favorite) return false;
+    if (!contactSearch) return true;
+    const q = contactSearch.toLowerCase();
+    return c.name.toLowerCase().includes(q) || c.handle.toLowerCase().includes(q);
   });
 
   const currencySymbols: { [key: string]: string } = {
@@ -93,13 +137,65 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
 
   const symbol = currencySymbols[activeCurrency] || '$';
 
+  // Referral link
+  const referralLink = `https://pocketpay.me/join/${user.handle.replace('@', '')}`;
+
+  const handleCopyReferral = () => {
+    navigator.clipboard.writeText(referralLink);
+    setCopiedReferral(true);
+    setTimeout(() => setCopiedReferral(false), 2000);
+  };
+
+  const handleRedeem = () => {
+    if (user.cashbackPoints <= 0 || !onRedeemCashback) return;
+
+    confetti({
+      particleCount: 75,
+      spread: 60,
+      origin: { y: 0.6 },
+    });
+
+    onRedeemCashback(user.cashbackPoints);
+    setRedeemedNotice(true);
+    setTimeout(() => setRedeemedNotice(false), 3000);
+  };
+
+  // Export CSV Statement
+  const handleExportCSV = () => {
+    const headers = ['Reference', 'Title', 'Recipient/Sender', 'Amount', 'Currency', 'Category', 'Date', 'Status', 'Note'];
+    const rows = filteredTransactions.map((tx) => [
+      tx.referenceNumber,
+      `"${tx.title}"`,
+      `"${tx.recipientOrSender}"`,
+      tx.amount,
+      tx.currency,
+      tx.category,
+      tx.timestamp,
+      tx.status,
+      `"${tx.note || ''}"`,
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `pocket_wallet_statement_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    setExportNotice(true);
+    setTimeout(() => setExportNotice(false), 2500);
+  };
+
+  const activeBoostsCount = perks.filter(p => p.isActive).length;
+
   return (
-    <div className="space-y-6">
-      {/* Hero Grid: Balance & Fast Actions */}
+    <div className="space-y-6 w-full max-w-full overflow-hidden">
+      {/* Hero Grid: Balance, Fast Transfers & Swipeable Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Wallet Balance Card */}
+        {/* Main Wallet Balance & Quick Actions Card */}
         <div className="lg:col-span-2 relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950/40 border border-slate-800 p-6 sm:p-8 shadow-xl">
-          {/* Subtle glowing orb */}
           <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
           <div className="relative z-10 flex flex-col justify-between h-full space-y-6">
@@ -132,7 +228,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
 
               {/* Big amount display */}
               <div className="flex items-baseline gap-2">
-                <span className="text-4xl sm:text-5xl font-black tracking-tight text-white font-mono">
+                <span className="text-4xl sm:text-5xl font-black tracking-tight text-white font-mono tabular-nums">
                   {hideBalance ? (
                     '••••••••'
                   ) : (
@@ -145,17 +241,17 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                     </>
                   )}
                 </span>
-                <span className="text-xs font-semibold text-slate-400">{activeCurrency}</span>
+                <span className="text-sm font-semibold text-slate-400">{activeCurrency}</span>
               </div>
 
-              {/* Monthly Flow badge */}
+              {/* Monthly Flow summary */}
               <div className="flex flex-wrap gap-4 mt-4 pt-3 border-t border-slate-800/80 text-xs">
                 <div className="flex items-center gap-1.5 text-slate-300">
                   <div className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
                     <TrendingUp className="w-3.5 h-3.5" />
                   </div>
                   <span>
-                    Income this month: <strong className="text-white">${totalIncome.toFixed(2)}</strong>
+                    Income this month: <strong className="text-white font-mono tabular-nums">${totalIncome.toFixed(2)}</strong>
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 text-slate-300">
@@ -163,13 +259,13 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                     <TrendingDown className="w-3.5 h-3.5" />
                   </div>
                   <span>
-                    Spent this month: <strong className="text-white">${totalExpenses.toFixed(2)}</strong>
+                    Spent this month: <strong className="text-white font-mono tabular-nums">${totalExpenses.toFixed(2)}</strong>
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Quick Action Button Bar */}
+            {/* Quick Transfer & Action Button Bar */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
               <button
                 onClick={onOpenSend}
@@ -197,110 +293,113 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                 className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-slate-800 hover:bg-slate-700/90 text-white font-semibold text-xs border border-slate-700 active:scale-95 transition-all"
               >
                 <QrCode className="w-4 h-4 text-amber-400" />
-                <span>QR Code</span>
+                <span>QR Scanner</span>
               </button>
             </div>
           </div>
         </div>
 
-        {/* Pocket Card Glance Card */}
-        <div className="rounded-3xl bg-slate-900 border border-slate-800 p-6 flex flex-col justify-between shadow-xl relative overflow-hidden">
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex items-center gap-2">
-              <CreditCard className="w-4 h-4 text-indigo-400" />
-              <h3 className="font-bold text-sm text-white">Active Pocket Card</h3>
-            </div>
-            <button
-              onClick={() => setActiveTab('cards')}
-              className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-1"
-            >
-              <span>Manage</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          {/* Interactive Card Replica */}
-          {cards[0] && (
-            <div className="rounded-2xl p-4 bg-gradient-to-br from-emerald-600 via-teal-700 to-slate-900 text-white shadow-lg space-y-3 relative overflow-hidden">
-              <div className="flex justify-between items-center text-xs opacity-85 font-medium">
-                <span>{cards[0].name}</span>
-                <span className="uppercase font-bold tracking-wider">{cards[0].brand}</span>
-              </div>
-              <div className="font-mono text-base font-bold tracking-widest pt-2">
-                {cards[0].cardNumber}
-              </div>
-              <div className="flex justify-between items-end text-xs pt-2">
-                <div>
-                  <div className="text-[10px] opacity-75">HOLDER</div>
-                  <div className="font-bold">{cards[0].cardHolder}</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-[10px] opacity-75">MONTHLY LIMIT</div>
-                  <div className="font-bold">${cards[0].spendingLimit}</div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
-            <span className="flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" /> Freeze / Unlock Protection
-            </span>
-            <span className="text-emerald-400 font-medium">Ready</span>
-          </div>
-        </div>
+        {/* Swipeable Virtual Cards Deck in Wallet */}
+        <VirtualCardWalletDeck
+          cards={cards}
+          onToggleFreezeCard={onToggleFreezeCard}
+          onUpdateLimit={onUpdateLimit}
+          onOpenNewCardModal={onOpenNewCardModal}
+          onManageCards={() => setActiveTab('cards')}
+        />
       </div>
 
-      {/* Quick Send to Frequent Contacts */}
-      <div className="rounded-3xl bg-slate-900 border border-slate-800 p-5 shadow-xl">
-        <div className="flex justify-between items-center mb-3">
+      {/* Merged P2P Transfers & Beneficiaries Hub */}
+      <div className="rounded-3xl bg-slate-900 border border-slate-800 p-6 shadow-xl space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <Zap className="w-4 h-4 text-amber-400" />
-            <h3 className="font-bold text-sm text-white">Quick Instant Pay</h3>
-            <span className="text-xs text-slate-400 hidden sm:inline">• 1-tap transfers to friends</span>
+            <Users className="w-4 h-4 text-emerald-400" />
+            <h3 className="font-bold text-base text-white">Peer-to-Peer Transfers & Contacts</h3>
+            <span className="text-xs text-slate-400 font-mono tabular-nums">({contacts.length})</span>
           </div>
-          <button
-            onClick={onOpenSend}
-            className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold"
-          >
-            + Custom Transfer
-          </button>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            {/* Filter favorites toggle */}
+            <button
+              onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 border transition-all ${
+                showOnlyFavorites
+                  ? 'bg-amber-500/15 border-amber-500/30 text-amber-300'
+                  : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
+              }`}
+            >
+              <Star className={`w-3.5 h-3.5 ${showOnlyFavorites ? 'fill-amber-400 text-amber-400' : ''}`} />
+              <span>Favorites</span>
+            </button>
+
+            {/* Contacts search */}
+            <div className="relative flex-1 sm:w-56">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search friend..."
+                value={contactSearch}
+                onChange={(e) => setContactSearch(e.target.value)}
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3">
-          {contacts.slice(0, 5).map((contact) => (
+        {/* Contacts Grid with 1-Tap Quick Pay & Favorite Toggle */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+          {filteredContacts.map((contact) => (
             <div
               key={contact.id}
-              className="p-3 rounded-2xl bg-slate-800/60 border border-slate-700/60 hover:border-emerald-500/40 flex flex-col items-center text-center group transition-all"
+              className="p-3.5 rounded-2xl bg-slate-800/60 border border-slate-700/60 hover:border-emerald-500/40 transition-all flex flex-col justify-between space-y-3 relative group"
             >
-              <img
-                src={contact.avatar}
-                alt={contact.name}
-                className="w-12 h-12 rounded-full object-cover mb-2 ring-2 ring-slate-700 group-hover:ring-emerald-500 transition-all"
-              />
-              <span className="text-xs font-bold text-white truncate w-full">{contact.name.split(' ')[0]}</span>
-              <span className="text-[10px] text-slate-400 truncate w-full mb-2">{contact.handle}</span>
+              {onToggleFavoriteContact && (
+                <button
+                  type="button"
+                  onClick={() => onToggleFavoriteContact(contact.id)}
+                  className="absolute top-2.5 right-2.5 p-1 text-slate-500 hover:text-amber-400 transition-colors"
+                  title={contact.favorite ? 'Remove Favorite' : 'Mark as Favorite'}
+                >
+                  <Star className={`w-3.5 h-3.5 ${contact.favorite ? 'text-amber-400 fill-amber-400' : ''}`} />
+                </button>
+              )}
 
-              {/* Quick Preset Buttons */}
-              <div className="flex gap-1 w-full">
-                {[15, 30].map((amt) => (
-                  <button
-                    key={amt}
-                    type="button"
-                    onClick={() => onQuickSendContact(contact, amt)}
-                    className="flex-1 py-1 rounded-lg bg-slate-700 hover:bg-emerald-500 hover:text-slate-950 text-[11px] font-bold text-slate-200 transition-all active:scale-90"
-                    title={`Send $${amt} to ${contact.name}`}
-                  >
-                    ${amt}
-                  </button>
-                ))}
+              <div className="flex items-center gap-3">
+                <img
+                  src={contact.avatar}
+                  alt={contact.name}
+                  className="w-10 h-10 rounded-full object-cover shrink-0 ring-2 ring-slate-700"
+                />
+                <div className="min-w-0 pr-5">
+                  <div className="text-xs font-bold text-white truncate">{contact.name}</div>
+                  <div className="text-[11px] text-emerald-400 font-medium truncate">{contact.handle}</div>
+                </div>
+              </div>
+
+              {/* 1-Tap Pay Action Presets */}
+              <div className="pt-1 flex gap-1">
+                <button
+                  type="button"
+                  onClick={() => onQuickSendContact(contact, 25)}
+                  className="flex-1 py-1 px-2 rounded-lg bg-emerald-500/15 hover:bg-emerald-500 text-emerald-300 hover:text-slate-950 text-[11px] font-bold border border-emerald-500/30 transition-all active:scale-95"
+                >
+                  Send $25
+                </button>
+                <button
+                  type="button"
+                  onClick={onOpenSend}
+                  className="py-1 px-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 text-[11px] font-medium transition-colors"
+                  title="Custom Amount"
+                >
+                  Custom
+                </button>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Middle Row: Savings Vaults Preview & Cashback Banner */}
+      {/* Middle Row: Savings Vaults Preview & Fully Integrated Perks Hub */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Savings Vaults Snapshot */}
         <div className="lg:col-span-2 rounded-3xl bg-slate-900 border border-slate-800 p-6 shadow-xl space-y-4">
@@ -310,7 +409,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
               <h3 className="font-bold text-sm text-white">Savings Goals & Vaults</h3>
             </div>
             <button
-              onClick={() => setActiveTab('vaults')}
+              onClick={() => setActiveTab('savings-insights')}
               className="text-xs text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1"
             >
               <span>View All ({vaults.length})</span>
@@ -324,16 +423,16 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
               return (
                 <div
                   key={vault.id}
-                  onClick={() => setActiveTab('vaults')}
+                  onClick={() => setActiveTab('savings-insights')}
                   className="p-4 rounded-2xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 cursor-pointer transition-all space-y-2 group"
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-2xl">{vault.emoji}</span>
-                    <span className="text-xs font-bold text-cyan-400">{progress}%</span>
+                    <span className="text-xs font-bold text-cyan-400 font-mono tabular-nums">{progress}%</span>
                   </div>
                   <div>
                     <div className="text-xs font-bold text-white truncate">{vault.name}</div>
-                    <div className="text-xs text-slate-400">
+                    <div className="text-xs text-slate-400 font-mono tabular-nums">
                       ${vault.currentAmount.toLocaleString()} of ${vault.targetAmount.toLocaleString()}
                     </div>
                   </div>
@@ -349,88 +448,203 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
           </div>
         </div>
 
-        {/* Perks & Rewards Snapshot */}
-        <div className="rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900 to-amber-950/30 border border-slate-800 p-6 shadow-xl flex flex-col justify-between">
+        {/* Pocket Perks & Claimable Cashback Hub (Integrated into Wallet) */}
+        <div className="rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900 to-amber-950/30 border border-slate-800 p-6 shadow-xl flex flex-col justify-between space-y-4">
           <div>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-amber-400" />
-                <h3 className="font-bold text-sm text-white">Pocket Perks</h3>
+                <h3 className="font-bold text-sm text-white">Pocket Perks & Cashback</h3>
               </div>
               <span className="text-[11px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
-                Cashback Available
+                Live Rewards
               </span>
             </div>
 
             <div className="space-y-1">
-              <div className="text-2xl font-black text-white font-mono">${user.cashbackPoints.toFixed(2)}</div>
-              <p className="text-xs text-slate-400">Earned from 5% boost on groceries and dining</p>
+              <div className="text-2xl font-black text-white font-mono tabular-nums">
+                ${user.cashbackPoints.toFixed(2)}
+              </div>
+              <p className="text-xs text-slate-400">Available cash back from merchant boosters</p>
             </div>
 
-            <div className="mt-4 p-3 rounded-xl bg-slate-800/60 border border-slate-700/60 flex items-center justify-between text-xs">
+            <div className="mt-3 p-3 rounded-xl bg-slate-800/60 border border-slate-700/60 flex items-center justify-between text-xs">
               <span className="text-slate-300">Active Boosts</span>
-              <span className="font-bold text-emerald-400">3 merchants enabled</span>
+              <span className="font-bold text-emerald-400">{activeBoostsCount} merchants enabled</span>
             </div>
           </div>
 
-          <button
-            onClick={() => setActiveTab('rewards')}
-            className="mt-4 w-full py-2.5 px-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition-colors flex items-center justify-center gap-1.5"
-          >
-            <span>Redeem Points & Explore Perks</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
+          <div className="space-y-2 pt-1">
+            {/* 1-Tap Instant Redeem to Balance Button */}
+            <button
+              onClick={handleRedeem}
+              disabled={user.cashbackPoints <= 0}
+              className={`w-full py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-sm ${
+                user.cashbackPoints > 0
+                  ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 active:scale-95 cursor-pointer'
+                  : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
+              }`}
+            >
+              <Zap className="w-3.5 h-3.5 fill-current" />
+              <span>{redeemedNotice ? 'Redeemed to Wallet Balance!' : 'Redeem to Wallet Balance'}</span>
+            </button>
+
+            {/* Toggle Merchant Boosters & Referral hub */}
+            <button
+              onClick={() => setIsPerksHubOpen(!isPerksHubOpen)}
+              className="w-full py-2 px-3 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-semibold transition-colors flex items-center justify-center gap-1.5"
+            >
+              <span>{isPerksHubOpen ? 'Hide Merchant Boosts' : 'View Boosts & $15 Referral'}</span>
+              {isPerksHubOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Recent Activity Section */}
+      {/* Expanded Perks & Referral Hub (Accessible right inside the Wallet menu) */}
+      {isPerksHubOpen && (
+        <div className="rounded-3xl bg-slate-900 border border-slate-800 p-6 shadow-xl space-y-6 animate-in fade-in duration-200">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-amber-400" />
+                <h3 className="font-bold text-base text-white">Merchant Boosters & Cash Deals</h3>
+              </div>
+              <p className="text-xs text-slate-400">Activate boosts before paying with your Pocket Card for instant cashback credits</p>
+            </div>
+            <button
+              onClick={() => setIsPerksHubOpen(false)}
+              className="text-xs text-slate-400 hover:text-white self-start sm:self-auto underline"
+            >
+              Close Boosts
+            </button>
+          </div>
+
+          {/* Boosters Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {perks.map((perk) => (
+              <div
+                key={perk.id}
+                className={`p-4 rounded-2xl border transition-all flex flex-col justify-between space-y-3 ${
+                  perk.isActive
+                    ? 'bg-slate-800/80 border-amber-500/40 shadow-sm'
+                    : 'bg-slate-900 border-slate-800 opacity-80 hover:opacity-100'
+                }`}
+              >
+                <div>
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-2xl p-1.5 rounded-xl bg-slate-800 border border-slate-700">
+                        {perk.logo}
+                      </span>
+                      <div>
+                        <h4 className="font-bold text-sm text-white">{perk.merchant}</h4>
+                        <span className="text-[11px] text-slate-400">{perk.category}</span>
+                      </div>
+                    </div>
+                    <span className="text-xs font-black text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/20">
+                      {perk.cashbackPercent}% Back
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-slate-300">{perk.description}</p>
+                </div>
+
+                <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                  <span className="text-slate-500 text-[11px]">{perk.expiresIn}</span>
+                  {onTogglePerk && (
+                    <button
+                      type="button"
+                      onClick={() => onTogglePerk(perk.id)}
+                      className={`px-3 py-1 rounded-xl font-bold text-xs transition-all ${
+                        perk.isActive
+                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                          : 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-sm'
+                      }`}
+                    >
+                      {perk.isActive ? 'Boost Active' : 'Activate Boost'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Referral Banner */}
+          <div className="p-5 rounded-2xl bg-gradient-to-r from-indigo-950/40 via-slate-900 to-slate-900 border border-indigo-500/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Gift className="w-4 h-4 text-indigo-400" />
+                <h4 className="font-bold text-sm text-white">Give $15, Get $15 Referral Reward</h4>
+              </div>
+              <p className="text-xs text-slate-300 max-w-lg">
+                Share your invite link with friends. When they activate their Pocket Wallet, both accounts get an instant $15 cash bonus.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs font-mono text-slate-300 truncate max-w-xs">
+                {referralLink}
+              </div>
+              <button
+                onClick={handleCopyReferral}
+                className="flex items-center gap-1 px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shrink-0 transition-colors"
+              >
+                {copiedReferral ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedReferral ? 'Copied!' : 'Copy'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Comprehensive Statement & Transaction Ledger */}
       <div className="rounded-3xl bg-slate-900 border border-slate-800 p-6 shadow-xl space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h3 className="font-bold text-base text-white">Recent Transactions</h3>
+            <h3 className="font-bold text-base text-white">Transaction Ledger & History</h3>
             <p className="text-xs text-slate-400">Real-time ledger of debits, credits, transfers & auto-savings</p>
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Search filter */}
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Filter transactions..."
-                value={txSearch}
-                onChange={(e) => setTxSearch(e.target.value)}
-                className="bg-slate-800 border border-slate-700 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 w-44"
-              />
-            </div>
+            {/* Export CSV statement button */}
+            <button
+              onClick={handleExportCSV}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition-colors"
+            >
+              <Download className="w-3.5 h-3.5 text-emerald-400" />
+              <span>{exportNotice ? 'Statement Downloaded!' : 'Export CSV'}</span>
+            </button>
+          </div>
+        </div>
 
-            {/* Filter buttons */}
-            <div className="flex bg-slate-800 p-0.5 rounded-xl border border-slate-700">
+        {/* Filter Bar & Categories */}
+        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+          <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+            {categories.map((cat) => (
               <button
-                onClick={() => setFilterType('all')}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${
-                  filterType === 'all' ? 'bg-slate-700 text-white' : 'text-slate-400'
+                key={cat}
+                onClick={() => setFilterType(cat)}
+                className={`px-3 py-1 rounded-xl text-xs font-medium whitespace-nowrap shrink-0 transition-all ${
+                  filterType === cat
+                    ? 'bg-emerald-500 text-slate-950 font-bold'
+                    : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700/60'
                 }`}
               >
-                All
+                {cat}
               </button>
-              <button
-                onClick={() => setFilterType('in')}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${
-                  filterType === 'in' ? 'bg-slate-700 text-emerald-400' : 'text-slate-400'
-                }`}
-              >
-                In
-              </button>
-              <button
-                onClick={() => setFilterType('out')}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${
-                  filterType === 'out' ? 'bg-slate-700 text-rose-400' : 'text-slate-400'
-                }`}
-              >
-                Out
-              </button>
-            </div>
+            ))}
+          </div>
+
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search reference, note, title..."
+              value={txSearch}
+              onChange={(e) => setTxSearch(e.target.value)}
+              className="w-full sm:w-60 bg-slate-800 border border-slate-700 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+            />
           </div>
         </div>
 
@@ -441,7 +655,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
               No transactions match your search filter.
             </div>
           ) : (
-            filteredTransactions.slice(0, 8).map((tx) => {
+            filteredTransactions.map((tx) => {
               const isIncome = tx.amount > 0;
               const formattedDate = new Date(tx.timestamp).toLocaleDateString('en-US', {
                 month: 'short',
@@ -456,7 +670,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                 >
                   <div className="flex items-center gap-3">
                     {tx.avatar ? (
-                      <img src={tx.avatar} alt={tx.recipientOrSender} className="w-10 h-10 rounded-full object-cover shrink-0" />
+                      <img src={tx.avatar} alt={tx.recipientOrSender} className="w-10 h-10 rounded-full object-cover shrink-0 ring-1 ring-slate-700" />
                     ) : (
                       <div
                         className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${
@@ -467,48 +681,47 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                       </div>
                     )}
                     <div>
-                      <div className="text-sm font-semibold text-white group-hover:text-emerald-400 transition-colors">
-                        {tx.title}
+                      <div className="text-sm font-semibold text-white group-hover:text-emerald-400 transition-colors flex items-center gap-2">
+                        <span>{tx.title}</span>
+                        <span className="text-[10px] text-slate-500 font-mono hidden sm:inline tabular-nums">
+                          ({tx.referenceNumber})
+                        </span>
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-slate-400">
-                        <span>{tx.recipientOrSender}</span>
+                      <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
+                        <span className="text-slate-300">{tx.recipientOrSender}</span>
                         <span>•</span>
                         <span>{formattedDate}</span>
                         <span>•</span>
                         <span className="text-[11px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-300">
                           {tx.category}
                         </span>
+                        {tx.note && (
+                          <span className="italic text-slate-400 truncate max-w-xs hidden md:inline">
+                            "{tx.note}"
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
 
                   <div className="text-right">
                     <div
-                      className={`text-sm font-bold font-mono ${
+                      className={`text-sm font-bold font-mono tabular-nums ${
                         isIncome ? 'text-emerald-400' : 'text-slate-100'
                       }`}
                     >
                       {hideBalance ? '•••' : `${isIncome ? '+' : '-'}$${Math.abs(tx.amount).toFixed(2)}`}
                     </div>
-                    <span className="text-[10px] text-slate-500 uppercase">{tx.currency}</span>
+                    <div className="flex items-center gap-1 justify-end text-[11px] text-emerald-400">
+                      <CheckCircle2 className="w-3 h-3" />
+                      <span className="capitalize">{tx.status}</span>
+                    </div>
                   </div>
                 </div>
               );
             })
           )}
         </div>
-
-        {filteredTransactions.length > 8 && (
-          <div className="pt-2 text-center">
-            <button
-              onClick={() => setActiveTab('transfers')}
-              className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 inline-flex items-center gap-1"
-            >
-              <span>View full transaction statement</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );

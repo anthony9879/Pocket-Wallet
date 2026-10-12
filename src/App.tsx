@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   UserProfile, 
   Transaction, 
@@ -20,12 +20,10 @@ import {
   INITIAL_PERKS 
 } from './data/initialData';
 import { Navbar } from './components/Navbar';
+import { BottomNav } from './components/BottomNav';
 import { OverviewTab } from './components/OverviewTab';
-import { TransfersTab } from './components/TransfersTab';
 import { CardsTab } from './components/CardsTab';
-import { VaultsTab } from './components/VaultsTab';
-import { AnalyticsTab } from './components/AnalyticsTab';
-import { RewardsTab } from './components/RewardsTab';
+import { SavingsInsightsTab } from './components/SavingsInsightsTab';
 import { SendMoneyModal } from './components/Modals/SendMoneyModal';
 import { AddMoneyModal } from './components/Modals/AddMoneyModal';
 import { RequestMoneyModal } from './components/Modals/RequestMoneyModal';
@@ -72,6 +70,32 @@ export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('overview');
   const [activeCurrency, setActiveCurrency] = useState<string>('USD');
   const [hideBalance, setHideBalance] = useState<boolean>(false);
+
+  // Tab category and subtle slide-in animation tracking
+  const getTabCategory = (tab: string): 'overview' | 'cards' | 'savings' => {
+    if (tab === 'cards') return 'cards';
+    if (tab === 'savings-insights' || tab === 'vaults' || tab === 'analytics') return 'savings';
+    return 'overview';
+  };
+
+  const getTabIndex = (tabCategory: string): number => {
+    if (tabCategory === 'cards') return 1;
+    if (tabCategory === 'savings') return 2;
+    return 0;
+  };
+
+  const currentTabCategory = getTabCategory(activeTab);
+  const prevTabCategoryRef = useRef(currentTabCategory);
+  const [slideDirection, setSlideDirection] = useState<'right' | 'left' | 'none'>('none');
+
+  useEffect(() => {
+    if (prevTabCategoryRef.current !== currentTabCategory) {
+      const prevIdx = getTabIndex(prevTabCategoryRef.current);
+      const currIdx = getTabIndex(currentTabCategory);
+      setSlideDirection(currIdx > prevIdx ? 'right' : 'left');
+      prevTabCategoryRef.current = currentTabCategory;
+    }
+  }, [currentTabCategory]);
 
   // Modals state
   const [isSendOpen, setIsSendOpen] = useState<boolean>(false);
@@ -344,7 +368,7 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-emerald-500/30 selection:text-emerald-300">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-emerald-500/30 selection:text-emerald-300 w-full max-w-full overflow-x-hidden">
       {/* Top Navbar */}
       <Navbar
         user={user}
@@ -358,84 +382,75 @@ export const App: React.FC = () => {
       />
 
       {/* Main Tab Content */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {activeTab === 'overview' && (
-          <OverviewTab
-            user={user}
-            balances={balances}
-            activeCurrency={activeCurrency}
-            setActiveCurrency={setActiveCurrency}
-            hideBalance={hideBalance}
-            transactions={transactions}
-            cards={cards}
-            vaults={vaults}
-            contacts={contacts}
-            onOpenSend={() => setIsSendOpen(true)}
-            onOpenAddMoney={() => setIsAddMoneyOpen(true)}
-            onOpenRequest={() => setIsRequestOpen(true)}
-            onOpenQR={() => setIsQROpen(true)}
-            onSelectTransaction={(tx) => setSelectedTx(tx)}
-            onQuickSendContact={handleQuickSend}
-            setActiveTab={setActiveTab}
-          />
-        )}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-28 sm:pb-32 overflow-x-hidden">
+        <div
+          key={currentTabCategory}
+          className={`w-full max-w-full ${
+            slideDirection === 'right'
+              ? 'animate-tab-slide-right'
+              : slideDirection === 'left'
+              ? 'animate-tab-slide-left'
+              : 'animate-tab-slide-up'
+          }`}
+        >
+          {currentTabCategory === 'overview' && (
+            <OverviewTab
+              user={user}
+              balances={balances}
+              activeCurrency={activeCurrency}
+              setActiveCurrency={setActiveCurrency}
+              hideBalance={hideBalance}
+              transactions={transactions}
+              cards={cards}
+              vaults={vaults}
+              contacts={contacts}
+              perks={perks}
+              onTogglePerk={handleTogglePerk}
+              onRedeemCashback={handleRedeemCashback}
+              onOpenSend={() => setIsSendOpen(true)}
+              onOpenAddMoney={() => setIsAddMoneyOpen(true)}
+              onOpenRequest={() => setIsRequestOpen(true)}
+              onOpenQR={() => setIsQROpen(true)}
+              onSelectTransaction={(tx) => setSelectedTx(tx)}
+              onQuickSendContact={handleQuickSend}
+              setActiveTab={setActiveTab}
+              onToggleFreezeCard={handleToggleFreezeCard}
+              onUpdateLimit={handleUpdateCardLimit}
+              onOpenNewCardModal={() => setIsNewCardOpen(true)}
+              onToggleFavoriteContact={handleToggleFavoriteContact}
+            />
+          )}
 
-        {activeTab === 'transfers' && (
-          <TransfersTab
-            contacts={contacts}
-            transactions={transactions}
-            onOpenSend={() => setIsSendOpen(true)}
-            onOpenRequest={() => setIsRequestOpen(true)}
-            onOpenQR={() => setIsQROpen(true)}
-            onSelectTransaction={(tx) => setSelectedTx(tx)}
-            onQuickSendContact={handleQuickSend}
-            onToggleFavoriteContact={handleToggleFavoriteContact}
-          />
-        )}
+          {currentTabCategory === 'cards' && (
+            <CardsTab
+              cards={cards}
+              onToggleFreezeCard={handleToggleFreezeCard}
+              onUpdateLimit={handleUpdateCardLimit}
+              onToggleOnlinePayments={handleToggleOnlinePayments}
+              onToggleInternational={handleToggleInternational}
+              onRegenerateDisposable={handleRegenerateDisposable}
+              onOpenNewCardModal={() => setIsNewCardOpen(true)}
+            />
+          )}
 
-        {activeTab === 'cards' && (
-          <CardsTab
-            cards={cards}
-            onToggleFreezeCard={handleToggleFreezeCard}
-            onUpdateLimit={handleUpdateCardLimit}
-            onToggleOnlinePayments={handleToggleOnlinePayments}
-            onToggleInternational={handleToggleInternational}
-            onRegenerateDisposable={handleRegenerateDisposable}
-            onOpenNewCardModal={() => setIsNewCardOpen(true)}
-          />
-        )}
-
-        {activeTab === 'vaults' && (
-          <VaultsTab
-            vaults={vaults}
-            mainBalance={balances.USD || 0}
-            onDepositToVault={handleDepositToVault}
-            onWithdrawFromVault={handleWithdrawFromVault}
-            onToggleRoundup={handleToggleRoundup}
-            onOpenNewVaultModal={() => setIsNewVaultOpen(true)}
-          />
-        )}
-
-        {activeTab === 'analytics' && (
-          <AnalyticsTab
-            transactions={transactions}
-            budgets={budgets}
-            onUpdateBudget={handleUpdateBudget}
-          />
-        )}
-
-        {activeTab === 'rewards' && (
-          <RewardsTab
-            user={user}
-            perks={perks}
-            onTogglePerk={handleTogglePerk}
-            onRedeemCashback={handleRedeemCashback}
-          />
-        )}
+          {currentTabCategory === 'savings' && (
+            <SavingsInsightsTab
+              vaults={vaults}
+              mainBalance={balances.USD || 0}
+              transactions={transactions}
+              budgets={budgets}
+              onDepositToVault={handleDepositToVault}
+              onWithdrawFromVault={handleWithdrawFromVault}
+              onToggleRoundup={handleToggleRoundup}
+              onOpenNewVaultModal={() => setIsNewVaultOpen(true)}
+              onUpdateBudget={handleUpdateBudget}
+            />
+          )}
+        </div>
       </main>
 
       {/* Footer */}
-      <footer className="mt-auto border-t border-slate-900 bg-slate-950 py-6 text-center text-xs text-slate-500">
+      <footer className="mt-auto border-t border-slate-900 bg-slate-950 py-6 pb-28 sm:pb-32 text-center text-xs text-slate-500 w-full max-w-full overflow-x-hidden">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <span className="font-bold text-slate-400">Pocket Wallet</span>
@@ -451,6 +466,14 @@ export const App: React.FC = () => {
           </div>
         </div>
       </footer>
+
+      {/* Stylized Bottom Menu Dock */}
+      <BottomNav
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        cardsCount={cards.length}
+        cashbackValue={user.cashbackPoints}
+      />
 
       {/* Modals */}
       <SendMoneyModal

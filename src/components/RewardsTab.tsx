@@ -52,7 +52,7 @@ export const RewardsTab: React.FC<RewardsTabProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full max-w-full overflow-hidden">
       {/* Hero Cashback Vault */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-amber-950/20 to-slate-900 border border-slate-800 p-6 sm:p-8 shadow-xl">
         <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />

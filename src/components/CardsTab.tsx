@@ -4,7 +4,6 @@ import {
   CreditCard, 
   Plus, 
   Lock, 
-  Unlock, 
   Eye, 
   EyeOff, 
   Globe, 
@@ -14,14 +13,15 @@ import {
   Check, 
   RefreshCw,
   Sparkles,
-  Sliders
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 interface CardsTabProps {
   cards: VirtualCard[];
-  onToggleFreezeCard: (cardId: string) => void;
-  onUpdateLimit: (cardId: string, newLimit: number) => void;
+  onToggleFreezeCard?: (cardId: string) => void;
+  onUpdateLimit?: (cardId: string, newLimit: number) => void;
   onToggleOnlinePayments: (cardId: string) => void;
   onToggleInternational: (cardId: string) => void;
   onRegenerateDisposable: (cardId: string) => void;
@@ -30,8 +30,6 @@ interface CardsTabProps {
 
 export const CardsTab: React.FC<CardsTabProps> = ({
   cards,
-  onToggleFreezeCard,
-  onUpdateLimit,
   onToggleOnlinePayments,
   onToggleInternational,
   onRegenerateDisposable,
@@ -40,8 +38,48 @@ export const CardsTab: React.FC<CardsTabProps> = ({
   const [selectedCardId, setSelectedCardId] = useState<string>(cards[0]?.id || '');
   const [showSensitiveDetails, setShowSensitiveDetails] = useState<{ [key: string]: boolean }>({});
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [syncedWalletCardId, setSyncedWalletCardId] = useState<string | null>(null);
+
+  // Swipe state
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [touchCurrentX, setTouchCurrentX] = useState<number | null>(null);
+  const [dragOffset, setDragOffset] = useState(0);
 
   const selectedCard = cards.find((c) => c.id === selectedCardId) || cards[0];
+  const currentIndex = cards.findIndex((c) => c.id === selectedCard?.id);
+
+  const handlePrevCard = () => {
+    const nextIdx = currentIndex > 0 ? currentIndex - 1 : cards.length - 1;
+    setSelectedCardId(cards[nextIdx].id);
+  };
+
+  const handleNextCard = () => {
+    const nextIdx = currentIndex < cards.length - 1 ? currentIndex + 1 : 0;
+    setSelectedCardId(cards[nextIdx].id);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartX(e.touches[0].clientX);
+    setTouchCurrentX(e.touches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStartX === null) return;
+    const currentX = e.touches[0].clientX;
+    setTouchCurrentX(currentX);
+    setDragOffset((currentX - touchStartX) * 0.7);
+  };
+
+  const handleTouchEnd = () => {
+    if (touchStartX !== null && touchCurrentX !== null) {
+      const deltaX = touchCurrentX - touchStartX;
+      if (deltaX < -45) handleNextCard();
+      else if (deltaX > 45) handlePrevCard();
+    }
+    setTouchStartX(null);
+    setTouchCurrentX(null);
+    setDragOffset(0);
+  };
 
   const toggleShowDetails = (id: string) => {
     setShowSensitiveDetails((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -71,7 +109,7 @@ export const CardsTab: React.FC<CardsTabProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full max-w-full overflow-hidden">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl">
         <div>
@@ -93,39 +131,22 @@ export const CardsTab: React.FC<CardsTabProps> = ({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Card Selector and Interactive Card Presentation */}
-        <div className="lg:col-span-7 space-y-6">
-          {/* Card Tabs Carousel */}
-          <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-            {cards.map((card) => {
-              const isSelected = card.id === selectedCard?.id;
-              return (
-                <button
-                  key={card.id}
-                  onClick={() => setSelectedCardId(card.id)}
-                  className={`px-3.5 py-2 rounded-2xl text-xs font-semibold shrink-0 transition-all flex items-center gap-2 border ${
-                    isSelected
-                      ? 'bg-indigo-500/15 border-indigo-500 text-indigo-300 font-bold shadow-md'
-                      : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <CreditCard className="w-3.5 h-3.5" />
-                  <span>{card.name}</span>
-                  {card.isFrozen && (
-                    <span className="w-2 h-2 rounded-full bg-rose-500" title="Frozen" />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Interactive Card Presentation */}
+        {/* Left Column: Interactive Card Presentation */}
+        <div className="lg:col-span-7 space-y-4">
+          {/* Interactive Card Presentation with Swipe */}
           {selectedCard && (
-            <div className="relative">
+            <div className="relative group overflow-hidden rounded-3xl max-w-full">
               <div
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                style={{
+                  transform: `translateX(${dragOffset}px)`,
+                  transition: touchStartX !== null ? 'none' : 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                }}
                 className={`relative w-full aspect-[1.58/1] max-w-lg mx-auto rounded-3xl p-6 sm:p-8 bg-gradient-to-br ${getCardBg(
                   selectedCard.colorScheme
-                )} border shadow-2xl text-white flex flex-col justify-between overflow-hidden transition-all duration-300 ${
+                )} border shadow-2xl text-white flex flex-col justify-between overflow-hidden cursor-grab active:cursor-grabbing select-none transition-all duration-300 ${
                   selectedCard.isFrozen ? 'opacity-70 grayscale-[50%]' : ''
                 }`}
               >
@@ -227,6 +248,39 @@ export const CardsTab: React.FC<CardsTabProps> = ({
                 )}
               </div>
 
+              {/* Card Swipe & Quick Switcher Controls */}
+              <div className="flex items-center justify-between pt-3 px-1 text-xs text-slate-400">
+                <button
+                  onClick={handlePrevCard}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors"
+                  aria-label="Previous card"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                  <span className="text-[11px] font-medium hidden sm:inline">Prev</span>
+                </button>
+
+                <div className="flex items-center gap-1.5">
+                  {cards.map((card, idx) => (
+                    <button
+                      key={card.id}
+                      onClick={() => setSelectedCardId(card.id)}
+                      className={`h-1.5 rounded-full transition-all duration-300 ${
+                        selectedCard.id === card.id ? 'w-5 bg-indigo-500' : 'w-1.5 bg-slate-700 hover:bg-slate-500'
+                      }`}
+                      aria-label={`Select ${card.name}`}
+                    />
+                  ))}
+                </div>
+
+                <button
+                  onClick={handleNextCard}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors"
+                  aria-label="Next card"
+                >
+                  <span className="text-[11px] font-medium hidden sm:inline">Next</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
               {/* Disposable Card Burn Action */}
               {selectedCard.type === 'disposable' && (
                 <div className="mt-3 p-3 rounded-2xl bg-violet-950/30 border border-violet-500/30 flex items-center justify-between text-xs">
@@ -255,63 +309,9 @@ export const CardsTab: React.FC<CardsTabProps> = ({
           <div className="lg:col-span-5 space-y-4">
             <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-5">
               <h3 className="font-bold text-base text-white flex items-center gap-2">
-                <Sliders className="w-4 h-4 text-emerald-400" />
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
                 <span>Card Controls: {selectedCard.name}</span>
               </h3>
-
-              {/* Freeze toggle */}
-              <div className="p-3.5 rounded-2xl bg-slate-800/60 border border-slate-700/60 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-9 h-9 rounded-xl flex items-center justify-center ${
-                      selectedCard.isFrozen ? 'bg-rose-500/20 text-rose-400' : 'bg-emerald-500/20 text-emerald-400'
-                    }`}
-                  >
-                    {selectedCard.isFrozen ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
-                  </div>
-                  <div>
-                    <div className="text-xs font-semibold text-white">
-                      {selectedCard.isFrozen ? 'Card Frozen' : 'Card Active'}
-                    </div>
-                    <div className="text-[11px] text-slate-400">
-                      {selectedCard.isFrozen ? 'All transactions are blocked' : 'Instant freeze if misplaced'}
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => onToggleFreezeCard(selectedCard.id)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                    selectedCard.isFrozen
-                      ? 'bg-rose-600 hover:bg-rose-500 text-white'
-                      : 'bg-slate-700 hover:bg-slate-600 text-slate-200'
-                  }`}
-                >
-                  {selectedCard.isFrozen ? 'Unfreeze' : 'Freeze'}
-                </button>
-              </div>
-
-              {/* Monthly Spending Limit Slider */}
-              <div className="p-3.5 rounded-2xl bg-slate-800/60 border border-slate-700/60 space-y-2">
-                <div className="flex justify-between items-center text-xs">
-                  <span className="font-semibold text-white">Monthly Spending Limit</span>
-                  <span className="font-mono font-bold text-emerald-400">${selectedCard.spendingLimit}</span>
-                </div>
-                <input
-                  type="range"
-                  min="100"
-                  max="10000"
-                  step="100"
-                  value={selectedCard.spendingLimit}
-                  onChange={(e) => onUpdateLimit(selectedCard.id, parseFloat(e.target.value))}
-                  className="w-full accent-emerald-500 cursor-pointer"
-                />
-                <div className="flex justify-between text-[10px] text-slate-500">
-                  <span>Spent: ${selectedCard.currentSpent.toFixed(2)}</span>
-                  <span>Max: $10,000</span>
-                </div>
-              </div>
 
               {/* Online Transactions Toggle */}
               <div className="p-3.5 rounded-2xl bg-slate-800/60 border border-slate-700/60 flex items-center justify-between">
@@ -358,12 +358,27 @@ export const CardsTab: React.FC<CardsTabProps> = ({
                 <button
                   type="button"
                   onClick={() => {
-                    alert(`Card ${selectedCard.name} is synchronized with Apple Wallet & Google Pay!`);
+                    setSyncedWalletCardId(selectedCard.id);
+                    confetti({ particleCount: 30, spread: 50, origin: { y: 0.8 } });
+                    setTimeout(() => setSyncedWalletCardId(null), 3000);
                   }}
-                  className="w-full py-2.5 px-3 rounded-xl bg-black hover:bg-slate-950 text-white text-xs font-bold border border-slate-700 flex items-center justify-center gap-2 transition-colors"
+                  className={`w-full py-2.5 px-3 rounded-xl text-xs font-bold border flex items-center justify-center gap-2 transition-all ${
+                    syncedWalletCardId === selectedCard.id
+                      ? 'bg-emerald-950/70 border-emerald-500/50 text-emerald-300 shadow-md shadow-emerald-900/20'
+                      : 'bg-black hover:bg-slate-950 text-white border-slate-700 active:scale-98'
+                  }`}
                 >
-                  <CreditCard className="w-4 h-4" />
-                  <span>Add to Apple Pay / Google Wallet</span>
+                  {syncedWalletCardId === selectedCard.id ? (
+                    <>
+                      <Check className="w-4 h-4 text-emerald-400" />
+                      <span>Synced with Apple & Google Wallet!</span>
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="w-4 h-4" />
+                      <span>Add to Apple Pay / Google Wallet</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>
