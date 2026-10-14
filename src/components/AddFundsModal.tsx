@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useWallet } from '../context/WalletContext';
 import { X, PlusCircle, Building2, CreditCard, ShieldCheck, Zap } from 'lucide-react';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 interface AddFundsModalProps {
   isOpen: boolean;
@@ -8,6 +9,8 @@ interface AddFundsModalProps {
 }
 
 export const AddFundsModal: React.FC<AddFundsModalProps> = ({ isOpen, onClose }) => {
+  useBodyScrollLock(isOpen);
+
   const { bankAccounts, cards, addFunds, formatAmount, addToast } = useWallet();
   const [amount, setAmount] = useState<string>('250');
   const [sourceId, setSourceId] = useState<string>(bankAccounts[0]?.id || 'bank');
@@ -42,18 +45,18 @@ export const AddFundsModal: React.FC<AddFundsModalProps> = ({ isOpen, onClose })
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
       <div 
-        className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-100 overflow-hidden"
+        className="bg-white rounded-2xl sm:rounded-3xl max-w-md w-full shadow-2xl border border-slate-100 overflow-hidden max-h-[85dvh] sm:max-h-[88dvh] flex flex-col my-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+        <div className="p-4 sm:p-6 border-b border-slate-100 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600">
               <PlusCircle className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-slate-900 text-lg">Add Funds</h3>
+              <h3 className="font-bold text-slate-900 text-base sm:text-lg">Add Funds</h3>
               <p className="text-xs text-slate-500">Deposit money into your Pocket Wallet</p>
             </div>
           </div>
@@ -65,7 +68,7 @@ export const AddFundsModal: React.FC<AddFundsModalProps> = ({ isOpen, onClose })
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto">
           {/* Amount input */}
           <div>
             <label className="block text-xs font-semibold uppercase text-slate-400 mb-2">

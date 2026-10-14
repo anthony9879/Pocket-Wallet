@@ -214,13 +214,14 @@ export const ActivityView: React.FC = () => {
                   <div>
                     <div className="flex items-center gap-2">
                       <h4 className="font-bold text-slate-900 text-sm">{tx.title}</h4>
-                      <span className="hidden sm:inline-block px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-600">
+                      <span aria-hidden="true" className="text-slate-300 hidden sm:inline">·</span>
+                      <span className="hidden sm:inline text-xs text-slate-500 font-medium">
                         {tx.category}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
+                    <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
                       <span>{tx.recipientOrSender}</span>
-                      <span>•</span>
+                      <span aria-hidden="true" className="text-slate-300">·</span>
                       <span>
                         {new Date(tx.date).toLocaleDateString(undefined, {
                           month: 'short',
@@ -229,8 +230,8 @@ export const ActivityView: React.FC = () => {
                       </span>
                       {tx.cardLast4 && (
                         <>
-                          <span>•</span>
-                          <span>•••• {tx.cardLast4}</span>
+                          <span aria-hidden="true" className="text-slate-300">·</span>
+                          <span className="font-mono text-[11px]">•••• {tx.cardLast4}</span>
                         </>
                       )}
                     </div>
@@ -240,7 +241,7 @@ export const ActivityView: React.FC = () => {
                 <div className="flex items-center gap-3">
                   <div className="text-right">
                     <div
-                      className={`font-extrabold text-sm sm:text-base ${
+                      className={`font-extrabold text-sm sm:text-base tabular-nums ${
                         isIncoming ? 'text-emerald-600' : 'text-slate-900'
                       }`}
                     >

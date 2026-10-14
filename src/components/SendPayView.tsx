@@ -18,6 +18,7 @@ import {
   ArrowUpRight
 } from 'lucide-react';
 import { Contact, TransactionCategory } from '../types/wallet';
+import { UserAvatar } from './UserAvatar';
 
 const CATEGORIES: TransactionCategory[] = [
   'Transfer',
@@ -215,10 +216,10 @@ export const SendPayView: React.FC = () => {
                 {selectedContact ? (
                   <div className="flex items-center justify-between p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200">
                     <div className="flex items-center gap-3">
-                      <img 
-                        src={selectedContact.avatar} 
-                        alt={selectedContact.name} 
-                        className="w-10 h-10 rounded-full object-cover border border-emerald-200"
+                      <UserAvatar 
+                        name={selectedContact.name} 
+                        avatar={selectedContact.avatar} 
+                        size="md"
                       />
                       <div>
                         <div className="font-semibold text-slate-900 text-sm">{selectedContact.name}</div>
@@ -254,7 +255,7 @@ export const SendPayView: React.FC = () => {
                           onClick={() => handleSelectContact(c)}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-emerald-50 hover:text-emerald-800 text-xs text-slate-700 font-medium shrink-0 transition-colors border border-transparent hover:border-emerald-200"
                         >
-                          <img src={c.avatar} alt="" className="w-4 h-4 rounded-full object-cover" />
+                          <UserAvatar name={c.name} avatar={c.avatar} size="xs" />
                           <span>{c.name}</span>
                         </button>
                       ))}

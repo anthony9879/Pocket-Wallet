@@ -14,6 +14,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { PocketVault } from '../types/wallet';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 const EMOJI_OPTIONS = ['🛡️', '🏖️', '✈️', '💻', '🚗', '🏠', '💍', '🎓', '🎁', '⚡', '🎮', '🎿'];
 
@@ -35,6 +36,8 @@ export const PocketsView: React.FC = () => {
     pocket: PocketVault;
     action: 'deposit' | 'withdraw';
   } | null>(null);
+
+  useBodyScrollLock(isCreateOpen || Boolean(activeTransferPocket));
 
   const [transferAmount, setTransferAmount] = useState('');
 
@@ -284,9 +287,12 @@ export const PocketsView: React.FC = () => {
 
       {/* Transfer Deposit/Withdraw Modal */}
       {activeTransferPocket && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 space-y-4">
-            <div className="flex justify-between items-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
+          <div 
+            className="bg-white rounded-3xl max-w-sm w-full p-5 sm:p-6 shadow-2xl border border-slate-100 max-h-[88dvh] sm:max-h-[90dvh] flex flex-col my-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center shrink-0 mb-3">
               <div className="flex items-center gap-2">
                 <span className="text-2xl">{activeTransferPocket.pocket.emoji}</span>
                 <h3 className="font-bold text-slate-900 text-base">
@@ -296,13 +302,13 @@ export const PocketsView: React.FC = () => {
               </div>
               <button
                 onClick={() => setActiveTransferPocket(null)}
-                className="text-slate-400 hover:text-slate-600"
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleTransferSubmit} className="space-y-4 text-xs">
+            <form onSubmit={handleTransferSubmit} className="space-y-4 text-xs overflow-y-auto flex-1 pr-1">
               <div>
                 <div className="flex justify-between text-slate-500 mb-1">
                   <span>Amount</span>
@@ -354,19 +360,25 @@ export const PocketsView: React.FC = () => {
 
       {/* Create New Pocket Modal */}
       {isCreateOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
-            <div className="flex justify-between items-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
+          <div 
+            className="bg-white rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl border border-slate-100 max-h-[88dvh] sm:max-h-[90dvh] flex flex-col my-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center shrink-0 mb-3">
               <div>
                 <h3 className="font-bold text-slate-900 text-lg">Create Savings Pocket</h3>
                 <p className="text-xs text-slate-500">Lock money away toward a specific life goal</p>
               </div>
-              <button onClick={() => setIsCreateOpen(false)} className="text-slate-400 hover:text-slate-600">
+              <button 
+                onClick={() => setIsCreateOpen(false)} 
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleCreatePocket} className="space-y-4 text-xs">
+            <form onSubmit={handleCreatePocket} className="space-y-4 text-xs overflow-y-auto flex-1 pr-1">
               <div>
                 <label className="block font-semibold text-slate-500 uppercase mb-1">Pocket Icon</label>
                 <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">

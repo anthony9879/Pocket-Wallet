@@ -13,8 +13,13 @@ import {
   Smartphone
 } from 'lucide-react';
 import { Currency } from '../types/wallet';
+import { UserAvatar } from './UserAvatar';
 
-export const SettingsView: React.FC = () => {
+interface SettingsViewProps {
+  onClose?: () => void;
+}
+
+export const SettingsView: React.FC<SettingsViewProps> = ({ onClose }) => {
   const { user, updateUser, currency, setCurrency, resetAllData, addToast } = useWallet();
 
   const [name, setName] = useState(user.name);
@@ -48,10 +53,20 @@ export const SettingsView: React.FC = () => {
 
   return (
     <div className="space-y-8 animate-fade-in max-w-4xl mx-auto">
-      {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold text-slate-900">Wallet Settings & Security</h2>
-        <p className="text-sm text-slate-500">Manage personal details, authentication PIN, and preferences</p>
+      {/* Header with Back to Wallet */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900">Profile & Settings</h2>
+          <p className="text-sm text-slate-500">Manage personal details, authentication PIN, and preferences</p>
+        </div>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-xs transition-colors"
+          >
+            <span>← Back to Wallet</span>
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -59,10 +74,11 @@ export const SettingsView: React.FC = () => {
         <div className="md:col-span-1 space-y-6">
           <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm text-center">
             <div className="relative inline-block mx-auto">
-              <img
-                src={user.avatar}
-                alt={user.name}
-                className="w-24 h-24 rounded-full object-cover ring-4 ring-emerald-500/20"
+              <UserAvatar
+                name={user.name}
+                avatar={user.avatar}
+                size="xl"
+                className="w-24 h-24 text-2xl ring-4 ring-emerald-500/20"
               />
               <span className="absolute bottom-0 right-0 p-1.5 bg-emerald-600 text-white rounded-full shadow-sm">
                 <CheckCircle2 className="w-4 h-4" />

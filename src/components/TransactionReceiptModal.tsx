@@ -13,9 +13,12 @@ import {
   Copy,
   ShieldCheck 
 } from 'lucide-react';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 export const TransactionReceiptModal: React.FC = () => {
   const { selectedTransactionForReceipt, setSelectedTransactionForReceipt, formatAmount, addToast } = useWallet();
+
+  useBodyScrollLock(Boolean(selectedTransactionForReceipt));
 
   if (!selectedTransactionForReceipt) return null;
 
@@ -32,13 +35,13 @@ export const TransactionReceiptModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
       <div 
-        className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-100 overflow-hidden relative"
+        className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-100 overflow-hidden relative max-h-[88dvh] sm:max-h-[92dvh] flex flex-col my-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Header Pattern */}
-        <div className={`p-6 pb-8 text-center text-white relative ${
+        <div className={`p-5 sm:p-6 pb-6 text-center text-white relative shrink-0 ${
           isIncoming 
             ? 'bg-gradient-to-br from-emerald-600 to-teal-700' 
             : tx.type === 'pocket_transfer'
@@ -52,29 +55,29 @@ export const TransactionReceiptModal: React.FC = () => {
             <X className="w-5 h-5" />
           </button>
 
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-white/15 backdrop-blur-md mb-3 ring-4 ring-white/10">
-            {tx.type === 'send' && <ArrowUpRight className="w-7 h-7 text-white" />}
-            {tx.type === 'receive' && <ArrowDownLeft className="w-7 h-7 text-emerald-200" />}
-            {tx.type === 'deposit' && <ArrowDownLeft className="w-7 h-7 text-teal-200" />}
-            {tx.type === 'card_spend' && <CreditCard className="w-7 h-7 text-white" />}
-            {tx.type === 'pocket_transfer' && <PiggyBank className="w-7 h-7 text-sky-200" />}
+          <div className="inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/15 backdrop-blur-md mb-2 sm:mb-3 ring-4 ring-white/10">
+            {tx.type === 'send' && <ArrowUpRight className="w-6 h-6 sm:w-7 sm:h-7 text-white" />}
+            {tx.type === 'receive' && <ArrowDownLeft className="w-6 h-6 sm:w-7 sm:h-7 text-emerald-200" />}
+            {tx.type === 'deposit' && <ArrowDownLeft className="w-6 h-6 sm:w-7 sm:h-7 text-teal-200" />}
+            {tx.type === 'card_spend' && <CreditCard className="w-6 h-6 sm:w-7 sm:h-7 text-white" />}
+            {tx.type === 'pocket_transfer' && <PiggyBank className="w-6 h-6 sm:w-7 sm:h-7 text-sky-200" />}
           </div>
 
-          <h2 className="text-xl font-bold">{tx.title}</h2>
-          <p className="text-white/80 text-sm mt-0.5">{tx.recipientOrSender}</p>
+          <h2 className="text-lg sm:text-xl font-bold truncate px-6">{tx.title}</h2>
+          <p className="text-white/80 text-xs sm:text-sm mt-0.5 truncate px-6">{tx.recipientOrSender}</p>
 
-          <div className="mt-4 text-3xl font-extrabold tracking-tight">
+          <div className="mt-2 sm:mt-3 text-2xl sm:text-3xl font-extrabold tracking-tight">
             {isIncoming ? '+' : '-'}{formatAmount(tx.amount)}
           </div>
           
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 mt-3 rounded-full bg-white/20 backdrop-blur-md text-xs font-medium">
+          <div className="inline-flex items-center gap-1.5 px-3 py-0.5 sm:py-1 mt-2 sm:mt-3 rounded-full bg-white/20 backdrop-blur-md text-xs font-medium">
             <CheckCircle className="w-3.5 h-3.5" />
             <span>{tx.status.toUpperCase()}</span>
           </div>
         </div>
 
         {/* Receipt Details Body */}
-        <div className="p-6 space-y-4">
+        <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
           <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 space-y-3">
             <div className="flex justify-between items-center text-sm">
               <span className="text-slate-500">Transaction ID</span>
@@ -99,7 +102,7 @@ export const TransactionReceiptModal: React.FC = () => {
 
             <div className="flex justify-between items-center text-sm">
               <span className="text-slate-500">Category</span>
-              <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-200 text-slate-700">
+              <span className="text-xs font-semibold text-slate-800">
                 {tx.category}
               </span>
             </div>

@@ -20,6 +20,7 @@ import {
   Star
 } from 'lucide-react';
 import { Card } from '../types/wallet';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 export const CardsView: React.FC = () => {
   const { 
@@ -61,6 +62,8 @@ export const CardsView: React.FC = () => {
   const [isConnectBankOpen, setIsConnectBankOpen] = useState(false);
   const [bankName, setBankName] = useState('Wells Fargo');
   const [accountType, setAccountType] = useState<'Checking' | 'Savings'>('Checking');
+
+  useBodyScrollLock(isNewCardModalOpen || isConnectBankOpen || Boolean(pinPromptCardId));
 
   const activeCard = cards.find((c) => c.id === selectedCardId) || cards[0];
 
@@ -563,8 +566,8 @@ export const CardsView: React.FC = () => {
                       <div className="font-semibold text-slate-900 text-xs flex items-center gap-1.5">
                         <span>{bank.bankName}</span>
                         {bank.isPrimary && (
-                          <span className="text-[10px] text-emerald-600 font-medium bg-emerald-50 px-2 py-0.2 rounded-full border border-emerald-200">
-                            Primary
+                          <span className="text-[11px] text-emerald-600 font-medium">
+                            · Primary
                           </span>
                         )}
                       </div>
@@ -615,8 +618,11 @@ export const CardsView: React.FC = () => {
 
       {/* Security PIN verification modal */}
       {pinPromptCardId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 text-center space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
+          <div 
+            className="bg-white rounded-3xl max-w-sm w-full p-5 sm:p-6 shadow-2xl border border-slate-100 text-center space-y-4 max-h-[88dvh] overflow-y-auto my-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 mx-auto flex items-center justify-center">
               <Lock className="w-6 h-6" />
             </div>
@@ -664,22 +670,25 @@ export const CardsView: React.FC = () => {
 
       {/* Create New Virtual Card Modal */}
       {isNewCardModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-5">
-            <div className="flex justify-between items-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
+          <div 
+            className="bg-white rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl border border-slate-100 max-h-[88dvh] sm:max-h-[90dvh] flex flex-col my-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center shrink-0 mb-3">
               <div>
-                <h3 className="font-bold text-slate-900 text-lg">Create New Card</h3>
+                <h3 className="font-bold text-slate-900 text-base sm:text-lg">Create New Card</h3>
                 <p className="text-xs text-slate-500">Generate an instant virtual card with custom limits</p>
               </div>
               <button
                 onClick={() => setIsNewCardModalOpen(false)}
-                className="p-2 text-slate-400 hover:text-slate-600"
+                className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateCard} className="space-y-4">
+            <form onSubmit={handleCreateCard} className="space-y-4 overflow-y-auto flex-1 pr-1">
               <div>
                 <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">
                   Card Nickname
@@ -787,15 +796,21 @@ export const CardsView: React.FC = () => {
 
       {/* Connect Bank Account Modal */}
       {isConnectBankOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 space-y-4">
-            <div className="flex justify-between items-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
+          <div 
+            className="bg-white rounded-3xl max-w-sm w-full p-5 sm:p-6 shadow-2xl border border-slate-100 max-h-[88dvh] sm:max-h-[90dvh] flex flex-col my-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center shrink-0 mb-3">
               <h3 className="font-bold text-slate-900 text-base">Connect Bank via Plaid</h3>
-              <button onClick={() => setIsConnectBankOpen(false)} className="text-slate-400 hover:text-slate-600">
+              <button 
+                onClick={() => setIsConnectBankOpen(false)} 
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleAddBank} className="space-y-4 text-xs">
+            <form onSubmit={handleAddBank} className="space-y-4 text-xs overflow-y-auto flex-1 pr-1">
               <div>
                 <label className="block font-semibold text-slate-500 uppercase mb-1">Bank Name</label>
                 <select

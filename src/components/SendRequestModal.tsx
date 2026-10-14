@@ -14,6 +14,8 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { TransactionCategory, Contact } from '../types/wallet';
+import { UserAvatar } from './UserAvatar';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 interface SendRequestModalProps {
   isOpen: boolean;
@@ -51,6 +53,8 @@ export const SendRequestModal: React.FC<SendRequestModalProps> = ({
   } = useWallet();
 
   const [activeTab, setActiveTab] = useState<'send' | 'request'>(defaultTab);
+
+  useBodyScrollLock(isOpen);
 
   // Send Form State
   const [selectedContact, setSelectedContact] = useState<Contact | null>(initialRecipient);
@@ -163,13 +167,13 @@ export const SendRequestModal: React.FC<SendRequestModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
       <div 
-        className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-100 overflow-hidden"
+        className="bg-white rounded-2xl sm:rounded-3xl max-w-lg w-full shadow-2xl border border-slate-100 overflow-hidden max-h-[85dvh] sm:max-h-[88dvh] flex flex-col my-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header Tabs */}
-        <div className="p-5 pb-3 border-b border-slate-100 flex items-center justify-between">
+        <div className="p-4 sm:p-5 pb-3 border-b border-slate-100 flex items-center justify-between shrink-0">
           <div className="flex bg-slate-100 p-1 rounded-xl">
             <button
               type="button"
@@ -204,7 +208,7 @@ export const SendRequestModal: React.FC<SendRequestModalProps> = ({
         </div>
 
         {activeTab === 'send' ? (
-          <form onSubmit={handleSendSubmit} className="p-6 space-y-5">
+          <form onSubmit={handleSendSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto">
             {/* Recipient Picker */}
             <div>
               <label className="block text-xs font-semibold uppercase text-slate-400 mb-2">
@@ -214,10 +218,10 @@ export const SendRequestModal: React.FC<SendRequestModalProps> = ({
               {selectedContact ? (
                 <div className="flex items-center justify-between p-3 rounded-2xl bg-emerald-50/70 border border-emerald-200">
                   <div className="flex items-center gap-3">
-                    <img 
-                      src={selectedContact.avatar} 
-                      alt={selectedContact.name} 
-                      className="w-10 h-10 rounded-full object-cover border border-emerald-200"
+                    <UserAvatar 
+                      name={selectedContact.name} 
+                      avatar={selectedContact.avatar} 
+                      size="md"
                     />
                     <div>
                       <div className="font-semibold text-slate-900 text-sm">{selectedContact.name}</div>
@@ -254,7 +258,7 @@ export const SendRequestModal: React.FC<SendRequestModalProps> = ({
                         onClick={() => handleSelectContact(c)}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-emerald-50 hover:text-emerald-800 text-xs text-slate-700 font-medium shrink-0 transition-colors border border-transparent hover:border-emerald-200"
                       >
-                        <img src={c.avatar} alt="" className="w-4 h-4 rounded-full object-cover" />
+                        <UserAvatar name={c.name} avatar={c.avatar} size="xs" />
                         <span>{c.name.split(' ')[0]}</span>
                       </button>
                     ))}
@@ -391,7 +395,7 @@ export const SendRequestModal: React.FC<SendRequestModalProps> = ({
           </form>
         ) : (
           /* Request Money Tab */
-          <div className="p-6 space-y-5">
+          <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto">
             {!generatedLink ? (
               <form onSubmit={handleRequestSubmit} className="space-y-4">
                 <div>
