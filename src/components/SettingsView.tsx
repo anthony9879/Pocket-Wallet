@@ -9,18 +9,22 @@ import {
   RotateCcw, 
   Check, 
   CheckCircle2, 
-  AlertTriangle,
-  Smartphone
+  Smartphone,
+  Download,
+  FileSpreadsheet
 } from 'lucide-react';
 import { Currency } from '../types/wallet';
 import { UserAvatar } from './UserAvatar';
+import { ExportTransactionsModal } from './ExportTransactionsModal';
+import { downloadTransactionsCSV } from '../utils/exportTransactions';
 
 interface SettingsViewProps {
   onClose?: () => void;
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({ onClose }) => {
-  const { user, updateUser, currency, setCurrency, resetAllData, addToast } = useWallet();
+  const { user, updateUser, currency, setCurrency, resetAllData, addToast, transactions } = useWallet();
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   const [name, setName] = useState(user.name);
   const [handle, setHandle] = useState(user.handle);
@@ -102,6 +106,42 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onClose }) => {
                 <span className="text-slate-400">Monthly Limit:</span>
                 <span className="font-semibold text-slate-900">${user.monthlyTransferLimit.toLocaleString()}</span>
               </div>
+            </div>
+          </div>
+
+          {/* Download & Export Transaction History */}
+          <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-3">
+            <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+              <Download className="w-4 h-4 text-emerald-600" />
+              <span>Download History</span>
+            </h4>
+            <p className="text-xs text-slate-500">
+              Download your complete transaction statement as a CSV spreadsheet or JSON data file.
+            </p>
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  if (transactions.length === 0) {
+                    addToast('No transactions to download', 'info');
+                    return;
+                  }
+                  downloadTransactionsCSV(transactions, currency);
+                  addToast(`Downloaded ${transactions.length} transactions as CSV`, 'success');
+                }}
+                className="py-2 px-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Export CSV</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsExportModalOpen(true)}
+                className="py-2 px-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Options</span>
+              </button>
             </div>
           </div>
 
@@ -309,6 +349,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onClose }) => {
           </div>
         </div>
       </div>
+
+      <ExportTransactionsModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+      />
     </div>
   );
 };

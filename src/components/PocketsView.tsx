@@ -36,8 +36,9 @@ export const PocketsView: React.FC = () => {
     pocket: PocketVault;
     action: 'deposit' | 'withdraw';
   } | null>(null);
+  const [pocketToDelete, setPocketToDelete] = useState<PocketVault | null>(null);
 
-  useBodyScrollLock(isCreateOpen || Boolean(activeTransferPocket));
+  useBodyScrollLock(isCreateOpen || Boolean(activeTransferPocket) || Boolean(pocketToDelete));
 
   const [transferAmount, setTransferAmount] = useState('');
 
@@ -269,13 +270,10 @@ export const PocketsView: React.FC = () => {
                   Withdraw
                 </button>
                 <button
-                  onClick={() => {
-                    if (window.confirm(`Delete "${pocket.title}"? Any remaining balance of ${formatAmount(pocket.currentAmount)} will be refunded to your main wallet balance.`)) {
-                      deletePocket(pocket.id);
-                    }
-                  }}
+                  onClick={() => setPocketToDelete(pocket)}
                   className="p-2.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 transition-colors"
                   title="Delete Pocket"
+                  aria-label={`Delete ${pocket.title}`}
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -456,6 +454,59 @@ export const PocketsView: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Pocket Confirmation Modal */}
+      {pocketToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
+          <div 
+            className="bg-white rounded-3xl max-w-sm w-full p-5 sm:p-6 shadow-2xl border border-slate-100 text-center space-y-4 max-h-[88dvh] overflow-y-auto my-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
+              <Trash2 className="w-6 h-6" />
+            </div>
+
+            <div>
+              <h3 className="font-bold text-slate-900 text-base">Delete Pocket</h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Are you sure you want to delete <strong className="text-slate-800 font-semibold">{pocketToDelete.emoji} {pocketToDelete.title}</strong>?
+              </p>
+            </div>
+
+            {pocketToDelete.currentAmount > 0 && (
+              <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-100 text-xs text-emerald-800 text-left flex items-center justify-between">
+                <div>
+                  <div className="font-semibold text-emerald-950">Refundable Savings</div>
+                  <div className="text-[11px] text-emerald-700">Returned immediately to main balance</div>
+                </div>
+                <span className="font-mono font-bold text-sm text-emerald-900">
+                  {formatAmount(pocketToDelete.currentAmount)}
+                </span>
+              </div>
+            )}
+
+            <div className="flex gap-2.5 pt-1">
+              <button
+                type="button"
+                onClick={() => setPocketToDelete(null)}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  deletePocket(pocketToDelete.id);
+                  setPocketToDelete(null);
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-sm transition-colors"
+              >
+                Delete Pocket
+              </button>
+            </div>
           </div>
         </div>
       )}

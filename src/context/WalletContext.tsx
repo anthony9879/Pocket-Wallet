@@ -247,12 +247,10 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   const deleteCard = (cardId: string) => {
     setCards((prev) => {
-      if (prev.length <= 1) {
-        addToast('Cannot delete the only remaining card', 'error');
-        return prev;
-      }
       const card = prev.find((c) => c.id === cardId);
-      addToast(`Removed ${card?.name || 'Card'}`, 'info');
+      if (card) {
+        addToast(`Removed ${card.name} (•••• ${card.last4})`, 'info');
+      }
       return prev.filter((c) => c.id !== cardId);
     });
   };
@@ -298,16 +296,14 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   const removeBankAccount = (bankId: string) => {
     setBankAccounts((prev) => {
-      if (prev.length <= 1) {
-        addToast('At least one bank account must remain linked', 'error');
-        return prev;
-      }
       const removed = prev.find((b) => b.id === bankId);
       const remaining = prev.filter((b) => b.id !== bankId);
       if (removed?.isPrimary && remaining.length > 0) {
         remaining[0].isPrimary = true;
       }
-      addToast(`Disconnected ${removed?.bankName || 'Bank'}`, 'info');
+      if (removed) {
+        addToast(`Disconnected ${removed.bankName} (${removed.accountNumberMasked})`, 'info');
+      }
       return remaining;
     });
   };

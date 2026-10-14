@@ -11,7 +11,8 @@ import {
   Share2, 
   Printer, 
   Copy,
-  ShieldCheck 
+  ShieldCheck,
+  Download
 } from 'lucide-react';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
@@ -32,6 +33,44 @@ export const TransactionReceiptModal: React.FC = () => {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDownloadReceipt = () => {
+    const receiptContent = [
+      '========================================',
+      '       POCKET WALLET RECEIPT            ',
+      '========================================',
+      `Transaction ID: ${tx.referenceNumber}`,
+      `Date & Time:    ${new Date(tx.date).toLocaleString()}`,
+      `Description:    ${tx.title}`,
+      `Counterparty:   ${tx.recipientOrSender}`,
+      `Type:           ${tx.type.toUpperCase()}`,
+      `Category:       ${tx.category}`,
+      `Status:         ${tx.status.toUpperCase()}`,
+      `Amount:         ${isIncoming ? '+' : '-'}${formatAmount(tx.amount)}`,
+      `Fee:            $0.00`,
+      `Total:          ${formatAmount(tx.amount)}`,
+      tx.cardLast4 ? `Payment Method: Card ending in •••• ${tx.cardLast4}` : '',
+      tx.recipientHandle ? `PocketPay ID:   ${tx.recipientHandle}` : '',
+      tx.note ? `Note / Memo:    ${tx.note}` : '',
+      '========================================',
+      'PocketPay Instant Settlement Protocols  ',
+      'Thank you for banking with Pocket Wallet',
+      '========================================',
+    ].filter(Boolean).join('\r\n');
+
+    const blob = new Blob([receiptContent], { type: 'text/plain;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `receipt-${tx.referenceNumber}.txt`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    setTimeout(() => {
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(url);
+    }, 150);
+    addToast('Receipt downloaded successfully', 'success');
   };
 
   return (
@@ -161,17 +200,24 @@ export const TransactionReceiptModal: React.FC = () => {
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-2 sm:gap-3 pt-2">
+            <button
+              onClick={handleDownloadReceipt}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 sm:py-3 px-3 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium text-xs sm:text-sm transition-colors"
+            >
+              <Download className="w-4 h-4 text-emerald-600" />
+              <span>Download</span>
+            </button>
             <button
               onClick={handlePrint}
-              className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium text-sm transition-colors"
+              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 sm:py-3 px-3 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium text-xs sm:text-sm transition-colors"
             >
               <Printer className="w-4 h-4" />
-              Print Receipt
+              <span>Print</span>
             </button>
             <button
               onClick={() => setSelectedTransactionForReceipt(null)}
-              className="flex-1 py-3 px-4 rounded-xl bg-slate-900 text-white hover:bg-slate-800 font-medium text-sm transition-colors text-center"
+              className="flex-1 py-2.5 sm:py-3 px-3 rounded-xl bg-slate-900 text-white hover:bg-slate-800 font-medium text-xs sm:text-sm transition-colors text-center"
             >
               Done
             </button>
