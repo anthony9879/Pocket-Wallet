@@ -4,14 +4,13 @@ import {
   X, 
   Download, 
   FileSpreadsheet, 
-  FileCode, 
-  CheckCircle2, 
   Filter, 
   Calendar,
-  Layers
+  Layers,
+  CheckCircle2
 } from 'lucide-react';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
-import { downloadTransactionsCSV, downloadTransactionsJSON } from '../utils/exportTransactions';
+import { downloadTransactionsCSV } from '../utils/exportTransactions';
 
 interface ExportTransactionsModalProps {
   isOpen: boolean;
@@ -23,7 +22,6 @@ export const ExportTransactionsModal: React.FC<ExportTransactionsModalProps> = (
   onClose,
 }) => {
   const { transactions, currency, formatAmount, addToast } = useWallet();
-  const [format, setFormat] = useState<'csv' | 'json'>('csv');
   const [dateRange, setDateRange] = useState<'all' | '30d' | '90d' | 'year'>('all');
   const [typeFilter, setTypeFilter] = useState<'all' | 'income' | 'expense' | 'pocket'>('all');
   const [isExporting, setIsExporting] = useState(false);
@@ -73,15 +71,10 @@ export const ExportTransactionsModal: React.FC<ExportTransactionsModalProps> = (
     setIsExporting(true);
     try {
       const today = new Date().toISOString().slice(0, 10);
-      const filename = `pocket-wallet-${dateRange}-${today}.${format}`;
+      const filename = `pocket-wallet-${dateRange}-${today}.csv`;
 
-      if (format === 'csv') {
-        downloadTransactionsCSV(filteredTransactions, currency, filename);
-        addToast(`Downloaded ${filteredTransactions.length} transactions as CSV`, 'success');
-      } else {
-        downloadTransactionsJSON(filteredTransactions, filename);
-        addToast(`Exported ${filteredTransactions.length} transactions as JSON`, 'success');
-      }
+      downloadTransactionsCSV(filteredTransactions, currency, filename);
+      addToast(`Downloaded ${filteredTransactions.length} transactions as CSV`, 'success');
 
       setTimeout(() => {
         setIsExporting(false);
@@ -107,7 +100,7 @@ export const ExportTransactionsModal: React.FC<ExportTransactionsModalProps> = (
             </div>
             <div>
               <h3 className="font-bold text-slate-900 text-base">Download History</h3>
-              <p className="text-xs text-slate-500">Export statement & transactions</p>
+              <p className="text-xs text-slate-500">Export transaction statement (CSV)</p>
             </div>
           </div>
           <button
@@ -121,53 +114,19 @@ export const ExportTransactionsModal: React.FC<ExportTransactionsModalProps> = (
 
         {/* Form Body */}
         <div className="space-y-4 overflow-y-auto flex-1 pr-0.5 text-xs">
-          {/* Format Selection */}
-          <div>
-            <label className="block font-semibold text-slate-600 uppercase mb-1.5">
-              File Format
-            </label>
-            <div className="grid grid-cols-2 gap-2.5">
-              <button
-                type="button"
-                onClick={() => setFormat('csv')}
-                className={`p-3 rounded-2xl border text-left flex items-start gap-2.5 transition-all ${
-                  format === 'csv'
-                    ? 'border-emerald-600 bg-emerald-50/50 text-slate-900 ring-2 ring-emerald-500/20'
-                    : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
-                }`}
-              >
-                <div className={`p-2 rounded-xl shrink-0 ${format === 'csv' ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
-                  <FileSpreadsheet className="w-4 h-4" />
-                </div>
-                <div>
-                  <div className="font-bold text-xs flex items-center gap-1">
-                    <span>CSV Spreadsheet</span>
-                    {format === 'csv' && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
-                  </div>
-                  <div className="text-[11px] text-slate-500 mt-0.5">Excel, Sheets, Numbers</div>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setFormat('json')}
-                className={`p-3 rounded-2xl border text-left flex items-start gap-2.5 transition-all ${
-                  format === 'json'
-                    ? 'border-emerald-600 bg-emerald-50/50 text-slate-900 ring-2 ring-emerald-500/20'
-                    : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
-                }`}
-              >
-                <div className={`p-2 rounded-xl shrink-0 ${format === 'json' ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
-                  <FileCode className="w-4 h-4" />
-                </div>
-                <div>
-                  <div className="font-bold text-xs flex items-center gap-1">
-                    <span>JSON Raw Data</span>
-                    {format === 'json' && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
-                  </div>
-                  <div className="text-[11px] text-slate-500 mt-0.5">Structured backup</div>
-                </div>
-              </button>
+          {/* Format Badge Card */}
+          <div className="p-3.5 rounded-2xl border border-emerald-200/80 bg-emerald-50/40 flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-emerald-600 text-white shrink-0 shadow-xs">
+              <FileSpreadsheet className="w-5 h-5" />
+            </div>
+            <div className="flex-1">
+              <div className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
+                <span>CSV Spreadsheet (.csv)</span>
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              </div>
+              <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                Formatted with UTF-8 encoding for Excel, Google Sheets, and Apple Numbers.
+              </p>
             </div>
           </div>
 
@@ -243,7 +202,7 @@ export const ExportTransactionsModal: React.FC<ExportTransactionsModalProps> = (
               </div>
             </div>
             <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-white border border-slate-200 text-slate-700">
-              {format.toUpperCase()}
+              CSV
             </span>
           </div>
         </div>
@@ -264,7 +223,7 @@ export const ExportTransactionsModal: React.FC<ExportTransactionsModalProps> = (
             className="flex-1 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-semibold shadow-sm flex items-center justify-center gap-1.5 transition-colors"
           >
             <Download className="w-3.5 h-3.5" />
-            <span>{isExporting ? 'Downloading...' : `Download ${format.toUpperCase()}`}</span>
+            <span>{isExporting ? 'Downloading...' : 'Download CSV'}</span>
           </button>
         </div>
       </div>

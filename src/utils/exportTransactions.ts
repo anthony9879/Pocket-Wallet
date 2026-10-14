@@ -91,29 +91,6 @@ export const downloadTransactionsCSV = (
 };
 
 /**
- * Downloads transactions as structured JSON format
- */
-export const downloadTransactionsJSON = (
-  transactions: Transaction[],
-  filename?: string
-): void => {
-  const exportPayload = {
-    exportDate: new Date().toISOString(),
-    generator: 'Pocket Wallet Digital Money Management',
-    totalTransactions: transactions.length,
-    transactions,
-  };
-
-  const jsonString = JSON.stringify(exportPayload, null, 2);
-  const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8;' });
-  
-  const today = new Date().toISOString().slice(0, 10);
-  const actualFilename = filename || `pocket-wallet-transactions-${today}.json`;
-
-  triggerBlobDownload(blob, actualFilename);
-};
-
-/**
  * Helper to trigger file download via temporary anchor element
  */
 const triggerBlobDownload = (blob: Blob, filename: string): void => {

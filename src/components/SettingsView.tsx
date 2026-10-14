@@ -116,7 +116,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onClose }) => {
               <span>Download History</span>
             </h4>
             <p className="text-xs text-slate-500">
-              Download your complete transaction statement as a CSV spreadsheet or JSON data file.
+              Download your complete transaction statement as a CSV spreadsheet (compatible with Excel, Apple Numbers & Google Sheets).
             </p>
             <div className="grid grid-cols-2 gap-2 pt-1">
               <button
