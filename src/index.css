@@ -1,31 +1,15 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 @layer base {
-  *, *::before, *::after {
-    border-color: rgba(255, 255, 255, 0.1);
-    box-sizing: border-box;
-  }
-  html {
-    overflow-x: hidden;
-    width: 100%;
-    max-width: 100%;
-  }
   body {
+    @apply bg-slate-50 text-slate-800 antialiased;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-    overflow-x: hidden;
-    width: 100%;
-    max-width: 100%;
-    margin: 0;
-    padding: 0;
-  }
-  #root {
-    overflow-x: hidden;
-    width: 100%;
-    max-width: 100%;
   }
 }
 
-/* Custom scrollbar */
+/* Custom smooth scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -34,67 +18,9 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: #cbd5e1;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
-}
-
-/* Tab Switching Slide-in Animations */
-@keyframes tabSlideInRight {
-  0% {
-    opacity: 0;
-    transform: translateX(20px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes tabSlideInLeft {
-  0% {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes tabSlideInUp {
-  0% {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-tab-slide-right {
-  animation: tabSlideInRight 0.26s cubic-bezier(0.16, 1, 0.3, 1) both;
-  will-change: transform, opacity;
-}
-
-.animate-tab-slide-left {
-  animation: tabSlideInLeft 0.26s cubic-bezier(0.16, 1, 0.3, 1) both;
-  will-change: transform, opacity;
-}
-
-.animate-tab-slide-up {
-  animation: tabSlideInUp 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
-  will-change: transform, opacity;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .animate-tab-slide-right,
-  .animate-tab-slide-left,
-  .animate-tab-slide-up {
-    animation: none !important;
-    transform: none !important;
-  }
+  background: #94a3b8;
 }

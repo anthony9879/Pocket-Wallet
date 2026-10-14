@@ -1,100 +1,98 @@
-export type TransactionType = 'send' | 'receive' | 'top_up' | 'withdraw' | 'card_payment' | 'vault_deposit' | 'vault_withdraw' | 'cashback';
+export type Currency = 'USD' | 'EUR' | 'GBP' | 'JPY';
 
-export type Category = 
+export type TransactionType = 'send' | 'receive' | 'deposit' | 'withdraw' | 'card_spend' | 'pocket_transfer';
+
+export type TransactionCategory = 
+  | 'Transfer'
   | 'Shopping'
   | 'Food & Dining'
-  | 'Bills & Utilities'
   | 'Entertainment'
-  | 'Travel & Transport'
-  | 'Health'
-  | 'Income & Salary'
-  | 'Transfers'
+  | 'Bills & Utilities'
+  | 'Income'
+  | 'Travel'
   | 'Savings'
-  | 'Other';
+  | 'Subscriptions';
 
 export interface Transaction {
   id: string;
   type: TransactionType;
   title: string;
   recipientOrSender: string;
-  amount: number; // positive for income/top-up/cashback, negative for expenses/sends
-  currency: string;
-  category: Category;
-  timestamp: string; // ISO string
+  recipientHandle?: string;
+  avatar?: string;
+  amount: number;
+  currency: Currency;
+  category: TransactionCategory;
+  date: string; // ISO date string
   status: 'completed' | 'pending' | 'failed';
   note?: string;
+  cardLast4?: string;
+  pocketId?: string;
   referenceNumber: string;
-  cardId?: string;
-  avatar?: string;
+  fee: number;
 }
 
-export interface VirtualCard {
+export interface Card {
   id: string;
   name: string;
-  type: 'virtual' | 'physical' | 'disposable';
-  cardNumber: string; // formatted 16 digits
-  cardHolder: string;
-  expiry: string;
+  cardNumber: string; // full 16 digits
+  last4: string;
+  expMonth: string;
+  expYear: string;
   cvv: string;
-  isFrozen: boolean;
-  spendingLimit: number; // monthly limit
-  currentSpent: number;
-  onlinePaymentsEnabled: boolean;
-  internationalEnabled: boolean;
-  colorScheme: 'emerald' | 'indigo' | 'violet' | 'amber' | 'rose' | 'slate';
+  type: 'virtual' | 'physical';
   brand: 'visa' | 'mastercard';
+  isFrozen: boolean;
+  monthlyLimit: number;
+  currentSpent: number;
+  colorScheme: 'emerald' | 'slate' | 'violet' | 'amber' | 'rose' | 'ocean';
+  createdAt: string;
+  onlinePaymentsEnabled?: boolean;
+  internationalRoamingEnabled?: boolean;
+  fraudGuardEnabled?: boolean;
+}
+
+export interface BankAccount {
+  id: string;
+  bankName: string;
+  accountType: 'Checking' | 'Savings';
+  accountNumberMasked: string;
+  balance: number;
+  isPrimary: boolean;
+}
+
+export interface PocketVault {
+  id: string;
+  title: string;
+  targetAmount: number;
+  currentAmount: number;
+  category: string;
+  emoji: string;
+  targetDate?: string;
+  color: string;
+  autoSaveEnabled: boolean;
+  autoSaveRoundUp: boolean;
 }
 
 export interface Contact {
   id: string;
   name: string;
-  handle: string; // e.g. @sarah
+  handle: string; // e.g. @sarah_m
   email: string;
-  phone: string;
   avatar: string;
-  favorite: boolean;
+  initials: string;
   recent: boolean;
 }
 
-export interface SavingsVault {
+export interface WalletUser {
   id: string;
   name: string;
-  targetAmount: number;
-  currentAmount: number;
-  currency: string;
-  category: string;
-  emoji: string;
-  deadline?: string;
-  autoRoundup: boolean;
-  color: string;
-}
-
-export interface Budget {
-  category: Category;
-  limit: number;
-  spent: number;
-  period: 'monthly';
-}
-
-export interface PerkOffer {
-  id: string;
-  merchant: string;
-  cashbackPercent: number;
-  category: string;
-  expiresIn: string;
-  isActive: boolean;
-  logo: string;
-  description: string;
-}
-
-export interface UserProfile {
-  name: string;
-  email: string;
   handle: string;
-  pocketId: string;
-  currency: string;
+  email: string;
+  phone: string;
   avatar: string;
-  cashbackPoints: number; // e.g. $42.50 in reward value
-  biometricsEnabled: boolean;
-  notificationsEnabled: boolean;
+  tier: 'Standard' | 'Silver' | 'Platinum';
+  dailyTransferLimit: number;
+  monthlyTransferLimit: number;
+  pinCode: string;
 }
